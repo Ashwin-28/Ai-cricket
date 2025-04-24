@@ -179,10 +179,10 @@ def results():
         from utils.commentary_generator import generate_commentary
         sample_commentary = generate_commentary(sample_events)
         
-        # Create sample results
+        # Create sample results - fix the path formats here to be consistent
         session['processing_results'] = {
-            'processed_video': os.path.join('static', 'samples', 'sample-cricket.mp4'),
-            'commentary_audio': os.path.join('static', 'samples', 'sample-commentary.mp3'),
+            'processed_video': 'samples/sample-cricket.mp4',  # Path relative to static folder
+            'commentary_audio': 'samples/sample-commentary.mp3',  # Path relative to static folder
             'events': sample_events,
             'commentary': sample_commentary
         }
@@ -191,8 +191,15 @@ def results():
     video_info = session['uploaded_video']
     results_info = session['processing_results']
     
-    print("Processed video path:", results_info['processed_video'])
-    print("Commentary audio path:", results_info['commentary_audio'])
+    # Fix paths if they include 'static/' prefix
+    if results_info['processed_video'].startswith('./static/'):
+        results_info['processed_video'] = results_info['processed_video'].replace('./static/', '')
+    
+    if results_info['commentary_audio'].startswith('./static/'):
+        results_info['commentary_audio'] = results_info['commentary_audio'].replace('./static/', '')
+    
+    logger.info(f"Processed video path: {results_info['processed_video']}")
+    logger.info(f"Commentary audio path: {results_info['commentary_audio']}")
     
     return render_template('results.html', 
                            video=video_info, 
