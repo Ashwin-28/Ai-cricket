@@ -1,4 +1,4 @@
-#!/home/ashwin/Coding/Ai-commentary-Generator-main/venv/bin/python3
+#!/home/ashwin/Ai-cricket/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

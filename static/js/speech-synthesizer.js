@@ -6,27 +6,74 @@ document.addEventListener('DOMContentLoaded', function() {
     const commentaryText = document.getElementById('commentary-text');
     const eventsButton = document.getElementById('events-button');
     
-    // Get audio path from the page data
-    const commentaryAudioPath = document.querySelector('[download]').href;
+    // Find the commentary audio path from the download link
+    const commentaryAudioLink = document.querySelector('a[download]');
+    let commentaryAudioPath = '';
+    
+    if (commentaryAudioLink && commentaryAudioLink.href.includes('commentary')) {
+        commentaryAudioPath = commentaryAudioLink.href;
+        console.log("Commentary audio path found:", commentaryAudioPath);
+    } else {
+        console.error("Could not find commentary audio download link");
+        // Try to find the second download link
+        const downloadLinks = document.querySelectorAll('a[download]');
+        if (downloadLinks.length > 1) {
+            commentaryAudioPath = downloadLinks[1].href;
+            console.log("Using second download link for audio:", commentaryAudioPath);
+        }
+    }
     
     // Create audio element for commentary
     const commentaryAudio = new Audio(commentaryAudioPath);
+    
+    // Debug to check if audio is loaded
+    commentaryAudio.addEventListener('loadeddata', function() {
+        console.log("Audio loaded successfully:", this.duration, "seconds");
+    });
+    
+    commentaryAudio.addEventListener('error', function() {
+        console.error("Error loading audio:", this.error);
+    });
     
     // Flag to track if commentary is playing
     let isCommentaryPlaying = false;
     
     // Play commentary function
     playCommentaryBtn.addEventListener('click', function() {
+        console.log("Play button clicked. Current state:", isCommentaryPlaying);
+        
         if (!isCommentaryPlaying) {
             // Start the video and commentary together
             video.currentTime = 0;
-            video.play();
-            commentaryAudio.currentTime = 0;
-            commentaryAudio.play();
             
-            // Update button text
-            playCommentaryBtn.innerHTML = '<i class="bi bi-pause-fill"></i> Pause Commentary';
-            isCommentaryPlaying = true;
+            // Create a promise to play both media elements
+            const videoPromise = video.play();
+            
+            if (videoPromise !== undefined) {
+                videoPromise.then(_ => {
+                    // Video playback started successfully
+                    console.log("Video started playing");
+                    
+                    // Now try to play the audio
+                    const audioPromise = commentaryAudio.play();
+                    
+                    if (audioPromise !== undefined) {
+                        audioPromise.then(_ => {
+                            console.log("Audio started playing");
+                            // Update button text
+                            playCommentaryBtn.innerHTML = '<i class="bi bi-pause-fill"></i> Pause Commentary';
+                            isCommentaryPlaying = true;
+                        }).catch(error => {
+                            console.error("Audio play failed:", error);
+                            // Even if audio fails, update UI since video is playing
+                            playCommentaryBtn.innerHTML = '<i class="bi bi-pause-fill"></i> Pause Commentary';
+                            isCommentaryPlaying = true;
+                        });
+                    }
+                }).catch(error => {
+                    console.error("Video play failed:", error);
+                });
+            }
         } else {
             // Pause both video and commentary
             video.pause();
@@ -40,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Synchronize commentary with video
     video.addEventListener('pause', function() {
+        console.log("Video paused");
         if (isCommentaryPlaying) {
             commentaryAudio.pause();
             playCommentaryBtn.innerHTML = '<i class="bi bi-play-fill"></i> Play Commentary';
@@ -49,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // When video ends, reset commentary
     video.addEventListener('ended', function() {
+        console.log("Video ended");
         if (isCommentaryPlaying) {
             commentaryAudio.pause();
             commentaryAudio.currentTime = 0;
@@ -132,6 +181,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const timestamp = parseFloat(this.getAttribute('data-time'));
                 video.currentTime = timestamp;
                 video.play();
+                
+                // Also update commentary audio position if needed
+                if (isCommentaryPlaying) {
+                    // Approximate the audio position based on video length and audio length
+                    const videoProgress = timestamp / video.duration;
+                    commentaryAudio.currentTime = videoProgress * commentaryAudio.duration;
+                }
             });
         });
     }
@@ -144,4 +200,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load events when page loads
     loadCricketEvents();
+    
+    // Additional functionality for browser compatibility
+    // Some browsers require user interaction before playing audio
+    document.body.addEventListener('click', function() {
+        // Pre-load the audio after user interaction
+        if (commentaryAudio.readyState === 0) {
+            commentaryAudio.load();
+        }
+    }, { once: true });
 });
