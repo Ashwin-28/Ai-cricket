@@ -123,10 +123,10 @@ def start_processing():
         output_audio_path = os.path.join(app.config['RESULTS_FOLDER'], f"commentary_{unique_id}.mp3")
         
         # Process the video to detect events (players, ball, shots, boundaries, wickets)
-        events = process_video(video_path, output_video_path)
+        analysis_results = process_video(video_path, output_video_path)
         
-        # Generate commentary based on detected events
-        commentary = generate_commentary(events)
+        # Generate commentary based on detected events and video duration
+        commentary = generate_commentary(analysis_results)
         
         # Convert commentary to speech
         logger.info(f"Converting commentary to speech: {len(commentary)} characters")
@@ -143,8 +143,9 @@ def start_processing():
         session['processing_results'] = {
             'processed_video': output_video_path,
             'commentary_audio': output_audio_path,
-            'events': events,
-            'commentary': commentary
+            'events': analysis_results.get('events', []),
+            'commentary': commentary,
+            'video_duration': analysis_results.get('duration', 0)
         }
         
         return jsonify({
